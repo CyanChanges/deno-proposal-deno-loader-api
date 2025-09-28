@@ -79,13 +79,13 @@ async function load(name: string) {
 Deno.writeFileSync("./plugin-a.ts", `
 export const version = 1;
 export function init() {
-  console.log('loaded', version);
+  console.log('loaded');
 }
 `)
 
 await load("plugin-a.ts");
 // Init module v1
-// loaded 1
+// loaded
 
 await load("plugin-a.ts");
 // Init module v1
@@ -94,14 +94,14 @@ await load("plugin-a.ts");
 Deno.writeFileSync("./plugin-a.ts", `
 export const version = 2;
 export function init() {
-  console.log('loaded', version);
+  console.log('🎉 loaded v2');
 }
 `)
 
-// unlink the specifier, so next time it get imported it will be evaluated again
+// unlink the specifier, so next time it get imported it will be read and evaluate again, rather use the existing cache
 Deno.loader.unlink(Deno.loader.resolve("plugin-a.ts"));
 
 await load('plugin-a.ts')
 // Init module v2
-// loaded 2
+// 🎉 loaded v2
 ```
