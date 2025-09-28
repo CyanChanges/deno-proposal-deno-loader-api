@@ -1,5 +1,8 @@
 # Proposal `Deno.Loader`
 
+Module Loader API is been wanted for a long time (https://github.com/denoland/deno/issues/8327).
+This Module Loader API enables more precise HMR controlled by the developer, and extra benefits make the runtime easier.
+
 Module Loader API Proposal for Deno
 
 ## Interface
