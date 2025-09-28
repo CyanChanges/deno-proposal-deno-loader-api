@@ -7,6 +7,8 @@ Module Loader API Proposal for Deno
 
 ## Interface
 
+Full definition in [deno.loader.d.ts](./deno.loader.d.ts).
+
 ```ts
 export class Loader {
   readonly name: string;
