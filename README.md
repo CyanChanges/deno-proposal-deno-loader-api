@@ -1,5 +1,5 @@
 # Proposal `Deno.Loader`
-
+m
 Module Loader API is been wanted for a long time (https://github.com/denoland/deno/issues/8327).
 This Module Loader API enables more precise HMR controlled by the developer, and extra benefits make the runtime easier.
 
@@ -7,7 +7,9 @@ Module Loader API Proposal for Deno
 
 ## Interface
 
-Full definition in [deno.loader.d.ts](./deno.loader.d.ts).
+### JS
+
+Full JS side definition in [deno.loader.d.ts](./deno.loader.d.ts).
 
 ```ts
 export class Loader {
@@ -68,6 +70,100 @@ export class Loader {
   // @param name - The name to alias the target specifier with
   alias(target: Loader.Specifier, name: Loader.Specifier): void;
 }
+```
+
+### Rust
+
+Proposed in https://github.com/denoland/deno_core/issues/1143
+
+```rs
+
+// get the SymbolicModule for `name`
+pub fn get<Q>(
+  &self,
+  name: &Q,
+  requested_module_type: impl AsRef<RequestedModuleType>,
+) -> Option<SymbolicModule>
+  where
+    ModuleName: Borrow<Q>,
+    Q: Eq + Hash + ?Sized;
+
+// set the SymbolicModule for `name`
+pub fn set(
+    &mut self,
+    name: ModuleName,
+    symbolic_module: SymbolicModule,
+    requested_module_type: impl AsRef<RequestedModuleType>,
+  ) -> Option<SymbolicModule>;
+
+// set `name` to be import to module namespace with module id of `id`
+pub fn set_id(
+  &self, 
+  requested_module_type: RequestedModuleType,
+  name: impl AsRef<str>, 
+  id: ModuleId
+) -> Option<SymbolicModule>;
+
+// delete so import(`name`) will re-evaluate the module with new ModuleId
+pub fn delete_id(
+  &self, 
+  requested_module_type: impl AsRef<RequestedModuleType>,
+  name: impl AsRef<str>, 
+  id: ModuleId
+) -> Option<SymbolicModule>;
+
+// alias so import(`name`) will have same effect of import(`alias`)
+pub fn alias(
+  &self, 
+  requested_module_type: RequestedModuleType,
+  name: impl AsRef<str>, 
+  alias: impl AsRef<str>
+) -> Option<SymbolicModule>; 
+
+// readonly access specifier -> SymbolicModule map with specified type
+pub fn with_map(
+  &self,
+  requested_module_type: impl AsRef<RequestedModuleType>,
+  f: impl FnOnce(Option<&HashMap<ModuleName, SymbolicModule>>),
+);
+
+// API visibility changes
+
+// from pub(crate) to pub
+pub fn get_name_by_id(&self, id: ModuleId) -> Option<String>;
+
+// from pub(crate) to pub
+pub fn get_type_by_module(
+  &self,
+  global: &v8::Global<v8::Module>,
+) -> Option<ModuleType>;
+
+// from pub(crate) to pub
+pub fn get_id<Q>(
+  &self,
+  name: &Q,
+  requested_module_type: impl AsRef<RequestedModuleType>,
+) -> Option<ModuleId>
+  where
+    ModuleName: Borrow<Q>,
+    Q: Eq + Hash + ?Sized;
+
+// from pub(crate) to pub
+// allow you to track module imports
+pub fn get_requested_modules(
+    &self,
+    id: ModuleId,
+  ) -> Option<Vec<ModuleRequest>>
+
+// from pub(crate) to pub
+pub fn get_name_by_module(
+    &self,
+    global: &v8::Global<v8::Module>,
+  ) -> OptionString>;
+
+// from pub(crate) to pub
+// also return &ModuleName instead of String to avoid Clone
+pub fn get_name_by_id(&self, id: ModuleId) -> Option<&ModuleName>;
 ```
 
 ### Example
