@@ -1,11 +1,64 @@
 # Proposal `Deno.Loader`
-m
-Module Loader API is been wanted for a long time (https://github.com/denoland/deno/issues/8327).
-This Module Loader API enables more precise HMR controlled by the developer, and extra benefits make the runtime easier.
 
 Module Loader API Proposal for Deno
 
+## Intro
+
+Module Loader API is been wanted for a long time (https://github.com/denoland/deno/issues/8327).
+This Module Loader API enables more precise HMR controlled by the developer, and extra benefits make the runtime easier.
+
+### Prototype
+There's a prototype to proof this can be implemented: https://github.com/CyanProjects/done/tree/main/ext/loader
+
+
+## Example
+
+Example Usage of `Deno.loader`.
+
+Also checkout [example.ts](./example.ts) for a hot patch example.
+
+```ts
+async function load(name: string) {
+  const module = await import(name);
+  console.log(`Init module v${module.version}`;
+  module.init();
+}
+
+Deno.writeFileSync("./plugin-a.ts", `
+export const version = 1;
+export function init() {
+  console.log('loaded');
+}
+`)
+
+await load("plugin-a.ts");
+// Init module v1
+// loaded
+
+await load("plugin-a.ts");
+// Init module v1
+
+// version 2 of our plugin
+Deno.writeFileSync("./plugin-a.ts", `
+export const version = 2;
+export function init() {
+  console.log('🎉 loaded v2');
+}
+`)
+
+// unlink the specifier, so next time it get imported it will be read and evaluate again, rather use the existing cache
+Deno.loader.unlink(Deno.loader.resolve("plugin-a.ts"));
+
+await load('plugin-a.ts')
+// Init module v2
+// 🎉 loaded v2
+```
+
+
 ## Interface
+
+There's Rust / deno_core interface and JS interface for users.
+The loader extension should provide ops that (do security checks) and call methods specified in Rust side / deno_core. 
 
 ### JS
 
@@ -72,9 +125,11 @@ export class Loader {
 }
 ```
 
-### Rust
+### Rust / deno_core
 
 Proposed in https://github.com/denoland/deno_core/issues/1143
+
+related pr: https://github.com/denoland/deno_core/pull/1146
 
 ```rs
 
@@ -164,45 +219,4 @@ pub fn get_name_by_module(
 // from pub(crate) to pub
 // also return &ModuleName instead of String to avoid Clone
 pub fn get_name_by_id(&self, id: ModuleId) -> Option<&ModuleName>;
-```
-
-### Example
-
-Also checkout [example.ts](./example.ts)~
-
-```ts
-async function load(name: string) {
-  const module = await import(name);
-  console.log(`Init module v${module.version}`;
-  module.init();
-}
-
-Deno.writeFileSync("./plugin-a.ts", `
-export const version = 1;
-export function init() {
-  console.log('loaded');
-}
-`)
-
-await load("plugin-a.ts");
-// Init module v1
-// loaded
-
-await load("plugin-a.ts");
-// Init module v1
-
-// version 2 of our plugin
-Deno.writeFileSync("./plugin-a.ts", `
-export const version = 2;
-export function init() {
-  console.log('🎉 loaded v2');
-}
-`)
-
-// unlink the specifier, so next time it get imported it will be read and evaluate again, rather use the existing cache
-Deno.loader.unlink(Deno.loader.resolve("plugin-a.ts"));
-
-await load('plugin-a.ts')
-// Init module v2
-// 🎉 loaded v2
 ```
